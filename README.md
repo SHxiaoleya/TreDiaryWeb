@@ -1,32 +1,32 @@
-# Tre Diary Web
+# The Diary Web
 
-一个简洁美观的日记展示网站，淡蓝淡粉渐变主色调（可自定义背景图）。  
+> 本目录是准备上传到 GitHub 的副本：只包含运行所需文件，不含 `node_modules/` 与 `test/`。
+> 上传前请先执行 `npm install` 生成依赖目录。
+
+一个简洁美观的日记展示网站，主色调为浅蓝和浅粉。
 支持从项目目录下读取 `.md` 文件并展示日记内容，包含标题、日期、天气与正文，同时支持关键词搜索（标题 + 正文）。
-如果你想要在受限环境（虚拟主机，网页托管）下使用，可前往[Tre Diary Web - PHP](https://github.com/SHxiaoleya/TreDiaryWeb-PHP)
-
----
-## 🖼 截图展示
-<img width="1419" height="767" alt="image" src="https://github.com/user-attachments/assets/133f9f2e-f333-481b-9a4c-587c5838e969" />
 
 ---
 
 ## 📌 项目特色
 
-- 可自定义背景图，界面清新简洁
+- 浅蓝 + 浅粉配色，界面清新简洁
 - 自动读取 `diaries/` 目录中的 Markdown 日记文件
 - 展示字段固定为：
   - 标题（title）
-  - 日期（date，建议使用毫秒时间戳）
+  - 日期（date，支持时间戳或 `YYYY-MM-DD`）
   - 天气（weather）
   - 正文（Markdown 渲染）
 - 按日期倒序展示（新日志优先）
-- 支持实时搜索标题和正文关键词
+- 支持实时搜索标题和正文关键词，标题命中处高亮
+- 服务端按文件修改时间缓存解析结果，文件没变就不重复解析
+- 正文经过 HTML 白名单净化，Markdown 中的脚本/事件属性会被移除
 
 ---
 
 ## 🧱 技术栈
 
-- **Node.js**
+- **Node.js**（>= 18）
 - **Express**
 - **gray-matter**（解析 Markdown Front Matter）
 - **marked**（Markdown 转 HTML）
@@ -34,71 +34,63 @@
 
 ---
 
-## ✅ 环境要求
-
-- Node.js >= 16（推荐 Node.js 18+）
-- npm >= 8
-- 现代浏览器（Chrome / Edge / Firefox / Safari）
-
----
-
 ## 📂 项目结构
 
 ```
 diary-site/
-├─ server.js
+├─ server.js              # 启动入口：配置 + 监听端口
+├─ lib/
+│  └─ diary.js            # 核心逻辑：解析、缓存、净化、HTTP 路由
+├─ public/
+│  ├─ index.html
+│  ├─ style.css
+│  ├─ app.js
+│  └─ favicon.svg
+├─ diaries/               # 你的日记（.md）
 ├─ package.json
-├─ diaries/
-│  ├─ 2026-04-28.md
-│  └─ 2026-04-29.md
-└─ public/
-   ├─ index.html
-   ├─ style.css
-   ├─ style-0.css
-   └─ app.js
+└─ README.md
 ```
 
 ---
 
 ## 🚀 安装与运行
 
-1. 克隆项目
-
-```bash
-git clone https://github.com/SHxiaoleya/TheDiaryWeb.git
-cd TheDiaryWeb
-```
-
-2. 安装依赖
+1. 安装依赖
 
 ```bash
 npm install
 ```
 
-3.启动项目
+2. 启动项目
 
 ```bash
-node server.js
+npm start          # 等价于 node server.js
 ```
 
-4.打开浏览器访问
+3. 打开浏览器访问
 
 ```bash
 http://localhost:3000
 ```
 
+可选环境变量：
+
+- `PORT`：监听端口，默认 `3000`（例如 `PORT=4000 npm start`）
+- `HOST`：监听地址，默认 `0.0.0.0`（仅本机使用可设为 `127.0.0.1`）
+
 ---
 
 ## ✍️ 日记文件格式说明
 
-请将日记文件放在`diaries/`目录下，扩展名为`.md`。
+请将日记文件放在 `diaries/` 目录下，扩展名为 `.md`。
+建议文件名使用时间戳格式（如 `202605012104.md`），便于排序与查找。
 
 推荐使用如下格式（YAML Front Matter + Markdown 正文）：
 
 ```md
 ---
 title: 春日散步
-date: 1745769600000
+date: 2026-04-28
 weather: 晴
 ---
 
@@ -111,35 +103,62 @@ weather: 晴
 
 ### 字段说明
 
-- `title`: 日记标题
-- `date`: 日期时间戳（毫秒，例如 1745769600000）
-- `weather`: 天气描述
-- 正文: 任意 Markdown 内容
+- `title`：日记标题，缺省时用文件名
+- `date`：日期，支持以下写法
+  - 毫秒时间戳：`1745769600000`
+  - 秒时间戳：`1745769600`（自动补足为毫秒）
+  - `2026-04-28`（按 UTC 零点解析，避免时区导致差一天）
+  - `2026-04-28 21:04` 或 ISO 字符串
+  - 无法解析时回退为文件修改时间
+- `weather`：天气描述
+- 正文：任意 Markdown 内容
 
 ---
 
 ## 🔍 搜索功能
 
-页面顶部提供搜索框，支持实时搜索：
+页面顶部提供搜索框，输入即过滤，清空即恢复全部列表：
 
-- 标题关键词
-- 正文关键词（会将渲染后的 HTML 提纯文本后匹配）
+- 匹配标题与正文纯文本（不区分大小写）
+- 搜索文本由服务端预计算（`searchText`），前端输入时无需重复解析 HTML
+- 输入有 150ms 防抖，避免连续输入触发多次渲染
+- 标题中的命中关键词会高亮，另可按 `Esc` 清空搜索
 
-输入即过滤，清空即恢复全部列表。
+也可以直接调用接口做服务端过滤：
+
+```bash
+curl "http://localhost:3000/api/diaries?q=散步"
+```
 
 ---
 
-## 🎆 自定义背景图
+## 🔌 接口说明
 
-在`/public`目录下的`style-0.css`中
+### `GET /api/diaries`
 
-```css
-body {
-  /* 在这里填写你的背景图片链接 */
-  --bg-image-url: url("在此处添加背景图.png");
+可选参数 `q`：关键词，按标题与正文过滤。
+
+响应结构：
+
+```json
+{
+  "count": 1,
+  "diaries": [
+    {
+      "id": "202605012104.md",
+      "title": "春日散步",
+      "date": 1777334400000,
+      "weather": "晴",
+      "bodyHtml": "<p>今天傍晚去公园散步……</p>",
+      "searchText": "春日散步\n今天傍晚去公园散步……"
+    }
+  ]
+}
 ```
 
-将`url`改为你的图片链接（本地目录，图床，随机图片API等），并将该文件重命名为`style.css`以替换掉原先的CSS样式。
+- 响应带内容哈希 `ETag`，客户端重验证时未变化返回 `304`
+- 前端同时兼容旧的「直接返回数组」格式，便于平滑升级
+- 正文已做白名单净化后才交给前端 `innerHTML`
 
 ---
 

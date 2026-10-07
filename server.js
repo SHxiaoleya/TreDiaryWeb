@@ -1,53 +1,40 @@
-const express = require('express');
-const fs = require('fs');
+'use strict';
+
+/**
+ * 启动入口：只负责读取配置、创建应用并监听端口。
+ * 业务逻辑集中在 lib/diary.js，便于测试与复用。
+ */
+
 const path = require('path');
-const matter = require('gray-matter');
-const { marked } = require('marked');
+const express = require('express');
+const { createApp } = require('./lib/diary');
 
-const app = express();
-const PORT = 3000;
-const DIARY_DIR = path.join(__dirname, 'diaries');
+const PORT = Number(process.env.PORT) || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
 
-// 静态资源
-app.use(express.static(path.join(__dirname, 'public')));
+const app = createApp({
+  diaryDir: path.join(__dirname, 'diaries'),
+  publicDir: path.join(__dirname, 'public'),
+  express,
+});
 
-// 读取并解析 .md 文件
-function getDiaries() {
-  if (!fs.existsSync(DIARY_DIR)) return [];
+const server = app.listen(PORT, HOST, () => {
+  const shown = HOST === '0.0.0.0' || HOST === '::' ? 'localhost' : HOST;
+  console.log(`Diary site running: http://${shown}:${PORT}`);
+});
 
-  const files = fs.readdirSync(DIARY_DIR).filter(f => f.endsWith('.md'));
-
-  const diaries = files.map(file => {
-    const fullPath = path.join(DIARY_DIR, file);
-    const raw = fs.readFileSync(fullPath, 'utf-8');
-
-    // 使用 front matter 存标题/日期/天气
-    const { data, content } = matter(raw);
-
-return {
-  id: file,
-  title: data.title || file.replace('.md', ''),
-  date: Number(data.date) || 0,   // 时间戳（毫秒）
-  weather: data.weather || '',
-  bodyHtml: marked.parse(content || '')
-};
-  });
-
-  // 按日期倒序（可选）
-  diaries.sort((a, b) => b.date - a.date);
-  return diaries;
-}
-
-// API：获取所有日记
-app.get('/api/diaries', (req, res) => {
-  try {
-    const diaries = getDiaries();
-    res.json(diaries);
-  } catch (err) {
-    res.status(500).json({ message: '读取日记失败', error: err.message });
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`端口 ${PORT} 已被占用，可用 PORT=3001 node server.js 指定其他端口。`);
+  } else {
+    console.error('服务启动失败:', err);
   }
+  process.exitCode = 1;
 });
 
-app.listen(PORT, () => {
-  console.log(`Diary site running: http://localhost:${PORT}`);
-});
+// 优雅退出，便于本地开发和进程管理器重启
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.on(signal, () => {
+    server.close(() => process.exit(0));
+  });
+}

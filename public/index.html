@@ -3,23 +3,37 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="一个简洁的本地日记站：读取 Markdown 文件并展示标题、日期、天气与正文。" />
   <title>我的日记</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <div class="bg-decor"></div>
+  <div class="bg-decor" aria-hidden="true"></div>
 
   <main class="container">
     <header class="site-header">
       <h1>我的日记</h1>
       <p>记录平凡日常里的小确幸</p>
-        <div class="search-wrap">
-    <input id="search-input" type="text" placeholder="搜索标题或正文关键词..." />
-  </div>
+
+      <div class="search-wrap">
+        <label class="sr-only" for="search-input">搜索日记</label>
+        <input
+          id="search-input"
+          type="search"
+          autocomplete="off"
+          placeholder="搜索标题或正文关键词..."
+        />
+      </div>
     </header>
 
+    <p id="status" class="status" role="status" aria-live="polite"></p>
     <section id="diary-list" class="diary-list"></section>
   </main>
+
+  <noscript>
+    <p class="status error">需要开启 JavaScript 才能显示日记内容。</p>
+  </noscript>
 
   <script src="./app.js"></script>
 </body>

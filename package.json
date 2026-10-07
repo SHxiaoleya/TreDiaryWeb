@@ -1,14 +1,18 @@
 {
   "name": "thediary",
   "version": "1.0.0",
-  "main": "index.js",
+  "private": true,
+  "description": "本地 Markdown 日记展示站点（Express + 原生前端）",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
-  "keywords": [],
+  "keywords": ["diary", "markdown", "express"],
   "author": "",
-  "license": "ISC",
-  "description": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "express": "^5.2.1",
     "gray-matter": "^4.0.3",
